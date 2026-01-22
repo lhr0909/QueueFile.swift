@@ -16,7 +16,7 @@ if useLocalFramework {
     binaryTarget = .binaryTarget(
         name: "QueueFileRS",
         url:
-        "https://github.com/example/QueueFile.swift/releases/download/\(releaseTag)/libqueuefile-rs.xcframework.zip",
+        "https://github.com/lhr0909/QueueFile.swift/releases/download/\(releaseTag)/libqueuefile-rs.xcframework.zip",
         checksum: releaseChecksum
     )
 }
