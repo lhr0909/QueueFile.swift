@@ -341,7 +341,7 @@ dependencies = [
 
 [[package]]
 name = "queue-file-swift"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "queue-file",
  "thiserror",

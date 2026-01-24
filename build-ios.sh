@@ -15,9 +15,9 @@ cargo build --release --target aarch64-apple-ios-sim
 cargo build --release --target aarch64-apple-darwin
 
 rm -rf ./build
-mkdir -p ./build/Headers
-cp ./out/queuefileFFI.h ./build/Headers/
-cp ./out/module.modulemap ./build/Headers/
+mkdir -p ./build/Headers/queuefileFFI
+cp ./out/queuefileFFI.h ./build/Headers/queuefileFFI/
+cp ./out/module.modulemap ./build/Headers/queuefileFFI/
 
 cp ./out/queuefile.swift ./Sources/QueueFileFFI/
 
