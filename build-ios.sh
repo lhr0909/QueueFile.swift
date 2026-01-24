@@ -2,33 +2,59 @@
 
 set -ex
 
-rm -rf ./build
-rm -rf ./out
+# arch targets to build for
+TARGETS_LIST="aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin"
+IFS=' ' read -r -a TARGETS <<< "${TARGETS_LIST}"
+
+OUT_DIR="./out"
+BUILD_DIR="./build"
+
+SOURCE_SUBPATH="QueueFileFFI"
+HEADER_SUBPATH="queuefileFFI"
+LIB_BASENAME="queuefile"
+
+SOURCE_DIR="./Sources/${SOURCE_SUBPATH}"
+SWIFT_SRC_FILE="${LIB_BASENAME}.swift"
+DYLIB_NAME="lib${LIB_BASENAME}.dylib"
+STATICLIB_NAME="lib${LIB_BASENAME}.a"
+
+HEADERS_DIR="${BUILD_DIR}/Headers"
+HEADER_DIR="${HEADERS_DIR}/${HEADER_SUBPATH}"
+HEADER_FILE="${HEADER_SUBPATH}.h"
+MODULEMAP_FILE="${HEADER_SUBPATH}.modulemap"
+
+XCFRAMEWORK_NAME="lib${LIB_BASENAME}-rs"
+XCFRAMEWORK_DIR="${BUILD_DIR}/${XCFRAMEWORK_NAME}.xcframework"
+XCFRAMEWORK_ZIP="${XCFRAMEWORK_DIR}.zip"
+
+rm -rf "${BUILD_DIR}"
+rm -rf "${OUT_DIR}"
 
 cargo build
-cargo run --bin uniffi-bindgen generate --library ./target/debug/libqueuefile.dylib --language swift --out-dir ./out
+cargo run --bin uniffi-bindgen generate --library "./target/debug/${DYLIB_NAME}" --language swift --out-dir "${OUT_DIR}"
 
-mv ./out/queuefileFFI.modulemap ./out/module.modulemap
+mv "${OUT_DIR}/${MODULEMAP_FILE}" "${OUT_DIR}/module.modulemap"
 
-cargo build --release --target aarch64-apple-ios
-cargo build --release --target aarch64-apple-ios-sim
-cargo build --release --target aarch64-apple-darwin
+for target in "${TARGETS[@]}"; do
+  cargo build --release --target "${target}"
+done
 
-rm -rf ./build
-mkdir -p ./build/Headers/queuefileFFI
-cp ./out/queuefileFFI.h ./build/Headers/queuefileFFI/
-cp ./out/module.modulemap ./build/Headers/queuefileFFI/
+rm -rf "${BUILD_DIR}"
+mkdir -p "${HEADER_DIR}"
+cp "${OUT_DIR}/${HEADER_FILE}" "${HEADER_DIR}/"
+cp "${OUT_DIR}/module.modulemap" "${HEADER_DIR}/"
 
-cp ./out/queuefile.swift ./Sources/QueueFileFFI/
+mkdir -p "${SOURCE_DIR}"
+cp "${OUT_DIR}/${SWIFT_SRC_FILE}" "${SOURCE_DIR}/"
 
-xcodebuild -create-xcframework \
--library ./target/aarch64-apple-ios/release/libqueuefile.a -headers ./build/Headers \
--library ./target/aarch64-apple-ios-sim/release/libqueuefile.a -headers ./build/Headers \
--library ./target/aarch64-apple-darwin/release/libqueuefile.a -headers ./build/Headers \
--output ./build/libqueuefile-rs.xcframework
+XCF_ARGS=()
+for target in "${TARGETS[@]}"; do
+  XCF_ARGS+=(-library "./target/${target}/release/${STATICLIB_NAME}" -headers "${HEADERS_DIR}")
+done
+xcodebuild -create-xcframework "${XCF_ARGS[@]}" -output "${XCFRAMEWORK_DIR}"
 
-ditto -c -k --sequesterRsrc --keepParent ./build/libqueuefile-rs.xcframework ./build/libqueuefile-rs.xcframework.zip
-checksum=$(swift package compute-checksum ./build/libqueuefile-rs.xcframework.zip)
+ditto -c -k --sequesterRsrc --keepParent "${XCFRAMEWORK_DIR}" "${XCFRAMEWORK_ZIP}"
+checksum=$(swift package compute-checksum "${XCFRAMEWORK_ZIP}")
 version=$(cargo metadata --format-version 1 | jq -r --arg pkg_name "queue-file-swift" '.packages[] | select(.name==$pkg_name) .version')
 sed -i "" -E "s/(let releaseTag = \")[^\"]*(\")/\1$version\2/g" ./Package.swift
 sed -i "" -E "s/(let releaseChecksum = \")[^\"]*(\")/\1$checksum\2/g" ./Package.swift
