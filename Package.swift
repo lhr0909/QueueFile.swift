@@ -11,8 +11,8 @@ if useLocalFramework {
         path: "./build/libqueuefile-rs.xcframework"
     )
 } else {
-    let releaseTag = "0.1.2"
-    let releaseChecksum = "24fc0eff75a343b06433c931a16a98447de25e82406dfecde8634144f4baf876"
+    let releaseTag = "0.1.3"
+    let releaseChecksum = "cb0714a9c2d72e8aae6a88ee2bf64cdd3b91e0160fd741c99a35dff52ceb9ea0"
     binaryTarget = .binaryTarget(
         name: "QueueFileRS",
         url:
